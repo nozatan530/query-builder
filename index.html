@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QUERY関数シミュレータ ｜ meetupsensei</title>
+<meta name="description" content="日本語をうめるとGoogleスプレッドシートのQUERY関数の数式と実行結果ができあがる学習ツール">
+
+<meta property="og:title" content="QUERY関数シミュレータ">
+<meta property="og:description" content="日本語をうめるだけでQUERY関数の数式と結果がわかるインタラクティブ教材">
+<meta property="og:image" content="https://query.meetupsensei.com/ogp.jpg">
+<meta property="og:url" content="https://query.meetupsensei.com/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+
+<style>
+:root{
+  --paper:#F7F8F9;
+  --panel:#FFFFFF;
+  --ink:#1F2933;
+  --ink-soft:#5B6873;
+  --rule:#CBD3DA;
+  --grid:#E3E8EC;
+  --zebra:#F3F6F8;
+  --head:#EDF1F4;
+  --code-bg:#EDF1F4;
+  --code-ink:#1F2933;
+  --btn-bg:#1F2933;
+  --btn-fg:#FFFFFF;
+  --btn-ghost-fg:#1F2933;
+  --c-select:#1B6CA8;
+  --c-where:#6B4E9B;
+  --c-group:#1F7A66;
+  --c-order:#9A6510;
+  --c-limit:#A2434F;
+  --radius:3px;
+}
+html[data-theme="dark"]{
+  --paper:#161A1E;
+  --panel:#1E2429;
+  --ink:#E6EAED;
+  --ink-soft:#A0AAB4;
+  --rule:#3A434B;
+  --grid:#2C333A;
+  --zebra:#222A30;
+  --head:#252D34;
+  --code-bg:#12171B;
+  --code-ink:#E6EAED;
+  --btn-bg:#E6EAED;
+  --btn-fg:#161A1E;
+  --btn-ghost-fg:#E6EAED;
+  --c-select:#69B4E8;
+  --c-where:#B79BE0;
+  --c-group:#63C4AC;
+  --c-order:#DFAE5A;
+  --c-limit:#E3909B;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic UI",system-ui,sans-serif;
+  color:var(--ink);background:var(--paper);
+  line-height:1.75;font-size:15px;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:2rem 1rem 3rem}
+
+/* header */
+.topbar{display:flex;justify-content:flex-end;gap:.5rem;margin-bottom:1.25rem}
+header{margin-bottom:1.75rem}
+.eyebrow{font-size:.75rem;letter-spacing:.14em;color:var(--ink-soft);margin:0 0 .35rem}
+h1{font-size:clamp(1.5rem,4vw,2.1rem);margin:0 0 .5rem;line-height:1.35;font-weight:700}
+.lede{margin:0;max-width:60ch;color:var(--ink-soft);font-size:.95rem}
+
+/* layout */
+.deck{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:1.25rem;align-items:start}
+@media (max-width:860px){.deck{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:var(--radius);padding:1.15rem}
+.panel + .panel{margin-top:1.25rem}
+.panel h2{
+  font-size:.75rem;letter-spacing:.12em;color:var(--ink-soft);
+  margin:0 0 1rem;font-weight:700;padding-bottom:.5rem;border-bottom:1px solid var(--grid);
+}
+
+/* rows */
+.row{display:grid;grid-template-columns:7rem 1fr;gap:.75rem;align-items:start;padding:.7rem .6rem;margin:0 -.6rem;border-radius:var(--radius)}
+.row.lit{background:var(--head)}
+.row-label{font-size:.85rem;font-weight:700;padding-top:.3rem;border-left:3px solid var(--tint);padding-left:.55rem;line-height:1.4}
+.row-label small{display:block;font-weight:400;font-size:.7rem;color:var(--ink-soft);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.controls{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
+
+select,input[type=text]{
+  font-family:inherit;font-size:.85rem;color:var(--ink);
+  background:var(--paper);border:1px solid var(--rule);border-radius:var(--radius);
+  padding:.35rem .5rem;min-height:2.1rem;
+}
+input[type=text]{width:6.5rem}
+select:focus-visible,input:focus-visible,button:focus-visible,.chip:focus-within{outline:2px solid var(--c-select);outline-offset:2px}
+label.chip{
+  display:inline-flex;align-items:center;gap:.3rem;font-size:.82rem;padding:.28rem .55rem;
+  border:1px solid var(--rule);border-radius:var(--radius);background:var(--paper);
+  color:var(--ink);cursor:pointer;user-select:none;
+}
+label.chip:has(input:checked){border-color:var(--c-select);color:var(--c-select);font-weight:700}
+label.chip input{margin:0}
+.chip code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem;color:var(--ink-soft)}
+label.chip:has(input:checked) code{color:var(--c-select)}
+.toggle{font-size:.82rem;display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;color:var(--ink)}
+.hint{font-size:.75rem;color:var(--ink-soft);margin:.3rem 0 0;flex-basis:100%}
+
+/* formula */
+.formula-panel{position:sticky;top:1rem}
+@media (max-width:860px){.formula-panel{position:static}}
+.formula{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86rem;line-height:2;
+  background:var(--code-bg);color:var(--code-ink);border:1px solid var(--rule);
+  border-radius:var(--radius);padding:1rem;overflow-x:auto;white-space:pre-wrap;word-break:break-word;
+}
+.tok{border-radius:2px;padding:.05rem .15rem}
+.tok[data-part]{cursor:pointer}
+.tok.lit{outline:2px solid var(--tint);outline-offset:1px}
+.t-select{color:var(--c-select)}.t-where{color:var(--c-where)}.t-group{color:var(--c-group)}
+.t-order{color:var(--c-order)}.t-limit{color:var(--c-limit)}
+.t-dim{color:var(--ink-soft)}
+
+.actions{display:flex;gap:.5rem;margin-top:.75rem;flex-wrap:wrap}
+button{
+  font-family:inherit;font-size:.83rem;font-weight:700;padding:.5rem .9rem;
+  border-radius:var(--radius);cursor:pointer;
+  border:1px solid var(--btn-bg);background:var(--btn-bg);color:var(--btn-fg);
+}
+button.ghost{background:transparent;color:var(--btn-ghost-fg);border-color:var(--rule)}
+.topbar button{font-size:.78rem;padding:.35rem .7rem;font-weight:400}
+
+/* tables */
+.tablewrap{overflow-x:auto;margin-top:.25rem}
+table{border-collapse:collapse;font-size:.82rem;width:100%}
+th,td{border:1px solid var(--grid);padding:.35rem .55rem;text-align:left;white-space:nowrap;color:var(--ink)}
+thead.colref th{background:var(--head);color:var(--ink-soft);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.75rem;text-align:center}
+thead.colref th.hit{color:var(--c-select);border-color:var(--c-select)}
+thead.names th{background:var(--panel);font-weight:700;font-size:.8rem}
+tbody tr:nth-child(even){background:var(--zebra)}
+tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
+.rownum{background:var(--head);color:var(--ink-soft);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.72rem;text-align:center}
+.result-meta{font-size:.78rem;color:var(--ink-soft);margin:.6rem 0 0}
+.empty{padding:1.25rem;text-align:center;color:var(--ink-soft);font-size:.85rem;border:1px dashed var(--rule);border-radius:var(--radius)}
+code.inline{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;background:var(--head);padding:.1rem .3rem;border-radius:2px}
+
+.notes{margin-top:2rem;font-size:.78rem;color:var(--ink-soft)}
+.notes p{margin:.3rem 0}
+footer{margin-top:2rem;padding-top:1.25rem;border-top:1px solid var(--rule);text-align:center;font-size:.8rem;color:var(--ink-soft)}
+footer a{color:var(--ink-soft)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <button class="ghost" id="langBtn" type="button">English</button>
+  <button class="ghost" id="themeBtn" type="button">ダーク</button>
+</div>
+
+<header>
+  <p class="eyebrow" data-i18n="eyebrow"></p>
+  <h1 data-i18n="title"></h1>
+  <p class="lede" data-i18n="lede"></p>
+</header>
+
+<div class="deck">
+  <div>
+    <div class="panel">
+      <h2 data-i18n="panelInput"></h2>
+
+      <div class="row" data-row="select" style="--tint:var(--c-select)">
+        <div class="row-label"><span data-i18n="rowSelect"></span><small>select</small></div>
+        <div class="controls" id="cols"></div>
+      </div>
+
+      <div class="row" data-row="where" style="--tint:var(--c-where)">
+        <div class="row-label"><span data-i18n="rowWhere"></span><small>where</small></div>
+        <div class="controls">
+          <select id="w1col"></select>
+          <select id="w1op"></select>
+          <input type="text" id="w1val" value="70">
+          <p class="hint" data-i18n="hintWhere"></p>
+          <label class="toggle"><input type="checkbox" id="w2on"> <span data-i18n="addCond"></span></label>
+          <div class="controls" id="w2box" hidden style="flex-basis:100%">
+            <select id="w2join"></select>
+            <select id="w2col"></select>
+            <select id="w2op"></select>
+            <input type="text" id="w2val" value="3">
+          </div>
+        </div>
+      </div>
+
+      <div class="row" data-row="group" style="--tint:var(--c-group)">
+        <div class="row-label"><span data-i18n="rowGroup"></span><small>group by</small></div>
+        <div class="controls">
+          <label class="toggle"><input type="checkbox" id="gon"> <span data-i18n="doAgg"></span></label>
+          <div class="controls" id="gbox" hidden style="flex-basis:100%">
+            <select id="gcol"></select>
+            <span style="font-size:.82rem" data-i18n="perEach"></span>
+            <select id="gfn"></select>
+            <select id="gtarget"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="row" data-row="order" style="--tint:var(--c-order)">
+        <div class="row-label"><span data-i18n="rowOrder"></span><small>order by</small></div>
+        <div class="controls">
+          <select id="ocol"></select>
+          <select id="odir"></select>
+        </div>
+      </div>
+
+      <div class="row" data-row="limit" style="--tint:var(--c-limit)">
+        <div class="row-label"><span data-i18n="rowLimit"></span><small>limit</small></div>
+        <div class="controls"><select id="lim"></select></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 data-i18n="panelSource"></h2>
+      <div class="tablewrap" id="src"></div>
+      <p class="result-meta" data-i18n="srcNote"></p>
+    </div>
+  </div>
+
+  <div class="formula-panel">
+    <div class="panel">
+      <h2 data-i18n="panelFormula"></h2>
+      <div class="formula" id="formula"></div>
+      <div class="actions">
+        <button id="copy" type="button" data-i18n="copy"></button>
+        <button class="ghost" id="reset" type="button" data-i18n="reset"></button>
+      </div>
+      <p class="result-meta" data-i18n="formulaNote"></p>
+    </div>
+
+    <div class="panel">
+      <h2 data-i18n="panelResult"></h2>
+      <div id="result"></div>
+    </div>
+  </div>
+</div>
+
+<div class="notes">
+  <p data-i18n="note1"></p>
+  <p data-i18n="note2"></p>
+</div>
+
+<footer>
+  <span id="credit"></span>
+</footer>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- i18n ---------- */
+var I18N = {
+  ja:{
+    lang:"ja", htmlLang:"ja",
+    docTitle:"QUERY関数シミュレータ ｜ meetupsensei",
+    eyebrow:"Google スプレッドシート",
+    title:"QUERY関数シミュレータ",
+    lede:"左の日本語をうめると、右にQUERY関数の数式と実行結果が出ます。左右は色で対応しています。日本語のどの部分が数式のどこになるのかを見比べてください。",
+    panelInput:"日本語でうめる",
+    panelSource:"もとの表（A1:E11）",
+    panelFormula:"できあがった数式",
+    panelResult:"実行するとこうなる",
+    rowSelect:"どの列を", rowWhere:"どんな行だけ", rowGroup:"まとめて集計",
+    rowOrder:"どの順に", rowLimit:"何件まで",
+    hintWhere:"条件を使わないときは列で「（条件なし）」を選びます。",
+    addCond:"条件をもう1つ足す", doAgg:"集計する", perEach:"ごとに",
+    noCond:"（条件なし）", noSort:"（並べ替えなし）",
+    groupName:"グループ名", aggValue:"集計した値",
+    copy:"数式をコピー", copied:"コピーしました", reset:"はじめに戻す",
+    srcNote:'列は名前ではなく <code class="inline">A</code> <code class="inline">B</code> <code class="inline">C</code> …の記号で指定します。上の灰色の行がその記号です。',
+    formulaNote:'最後の <code class="inline">1</code> は「1行目は見出し」という意味です。',
+    note1:"サンプルの氏名・点数はすべて架空のものです。",
+    note2:"プレビューはこのページ内で計算した簡易表示です。細かい表示は実際のスプレッドシートと少し違うことがあります。",
+    empty:"条件に合う行がありません。<br>スプレッドシートでは、この状態だと空のセルが返ります。",
+    rowsReturned:function(n){return n+" 行が返りました（見出しをのぞく）。";},
+    and:"かつ (and)", or:"または (or)",
+    asc:"小さい順 (asc)", desc:"大きい順 (desc)",
+    limAll:"すべて", limN:function(n){return n+"件";},
+    fn:{avg:"平均 (avg)",sum:"合計 (sum)",count:"件数 (count)",max:"最大 (max)",min:"最小 (min)"},
+    fnShort:{avg:"平均",sum:"合計",count:"件数",max:"最大",min:"最小"},
+    ops:{">":"より大きい",">=":"以上","<":"より小さい","<=":"以下","=":"と等しい","!=":"と等しくない","contains":"をふくむ","starts with":"ではじまる"},
+    credit:'制作：のざたん ／ <a href="https://meetupsensei.com" target="_blank" rel="noopener">meetupsensei.com</a>',
+    otherLangBtn:"English", darkBtn:"ダーク", lightBtn:"ライト"
+  },
+  en:{
+    lang:"en", htmlLang:"en",
+    docTitle:"QUERY Function Simulator | meetupsensei",
+    eyebrow:"Google Sheets",
+    title:"QUERY Function Simulator",
+    lede:"Fill in the plain-English form on the left, and the QUERY formula and its result appear on the right. Matching colours link the two sides.",
+    panelInput:"Fill in the form",
+    panelSource:"Source table (A1:E11)",
+    panelFormula:"Generated formula",
+    panelResult:"What it returns",
+    rowSelect:"Which columns", rowWhere:"Which rows", rowGroup:"Aggregate",
+    rowOrder:"Sort by", rowLimit:"How many",
+    hintWhere:'Choose "(no condition)" to skip filtering.',
+    addCond:"Add another condition", doAgg:"Aggregate", perEach:"by",
+    noCond:"(no condition)", noSort:"(no sorting)",
+    groupName:"Group name", aggValue:"Aggregated value",
+    copy:"Copy formula", copied:"Copied", reset:"Reset",
+    srcNote:'Columns are referenced by letters — <code class="inline">A</code> <code class="inline">B</code> <code class="inline">C</code> … — not by their names. The grey row above shows them.',
+    formulaNote:'The trailing <code class="inline">1</code> means "row 1 is the header".',
+    note1:"All names and scores are fictional sample data.",
+    note2:"The preview is calculated in this page. Small display details may differ from a real spreadsheet.",
+    empty:"No rows match the condition.<br>A real spreadsheet would return empty cells here.",
+    rowsReturned:function(n){return n+" row(s) returned (excluding the header).";},
+    and:"and", or:"or",
+    asc:"ascending (asc)", desc:"descending (desc)",
+    limAll:"All", limN:function(n){return "Top "+n;},
+    fn:{avg:"average (avg)",sum:"sum (sum)",count:"count (count)",max:"max (max)",min:"min (min)"},
+    fnShort:{avg:"avg",sum:"sum",count:"count",max:"max",min:"min"},
+    ops:{">":"is greater than",">=":"is at least","<":"is less than","<=":"is at most","=":"equals","!=":"does not equal","contains":"contains","starts with":"starts with"},
+    credit:'Created by Nozatan ／ <a href="https://meetupsensei.com" target="_blank" rel="noopener">meetupsensei.com</a>',
+    otherLangBtn:"日本語", darkBtn:"Dark", lightBtn:"Light"
+  }
+};
+var LANG = "ja";
+var T = function(){ return I18N[LANG]; };
+
+/* ---------- サンプルデータ ---------- */
+var COLS = [
+  {id:"A", ja:"番号",   en:"No.",        type:"num"},
+  {id:"B", ja:"氏名",   en:"Name",       type:"str"},
+  {id:"C", ja:"組",     en:"Class",      type:"str"},
+  {id:"D", ja:"小テスト", en:"Quiz",      type:"num"},
+  {id:"E", ja:"提出回数", en:"Submissions",type:"num"}
+];
+var BASE = [
+  [1,{ja:"相原 葵",en:"Aihara"},{ja:"1組",en:"Class 1"},82,5],
+  [2,{ja:"井上 陸",en:"Inoue"}, {ja:"1組",en:"Class 1"},64,3],
+  [3,{ja:"上田 花",en:"Ueda"},  {ja:"2組",en:"Class 2"},91,5],
+  [4,{ja:"遠藤 蓮",en:"Endo"},  {ja:"2組",en:"Class 2"},58,2],
+  [5,{ja:"大野 凛",en:"Ono"},   {ja:"1組",en:"Class 1"},75,4],
+  [6,{ja:"加藤 悠",en:"Kato"},  {ja:"3組",en:"Class 3"},88,5],
+  [7,{ja:"木村 湊",en:"Kimura"},{ja:"3組",en:"Class 3"},47,1],
+  [8,{ja:"小林 結",en:"Kobayashi"},{ja:"2組",en:"Class 2"},70,4],
+  [9,{ja:"佐藤 陽",en:"Sato"},  {ja:"3組",en:"Class 3"},95,5],
+  [10,{ja:"鈴木 咲",en:"Suzuki"},{ja:"1組",en:"Class 1"},61,3]
+];
+function rows(){
+  return BASE.map(function(r){
+    return r.map(function(v){ return (v && typeof v === "object") ? v[LANG] : v; });
+  });
+}
+var OP_ORDER = [">",">=","<","<=","=","!=","contains","starts with"];
+
+var $ = function(id){ return document.getElementById(id); };
+function colName(c){ return c[LANG]; }
+function colById(id){
+  for (var i=0;i<COLS.length;i++) if (COLS[i].id===id) return COLS[i];
+  return null;
+}
+function idxOf(id){ return COLS.map(function(c){return c.id;}).indexOf(id); }
+
+/* ---------- コントロール ---------- */
+function keepValues(){
+  return {
+    cols: Array.prototype.filter.call($("cols").querySelectorAll("input"), function(b){return b.checked;})
+              .map(function(b){return b.value;}),
+    w1col:$("w1col").value, w1op:$("w1op").value,
+    w2col:$("w2col").value, w2op:$("w2op").value, w2join:$("w2join").value,
+    gcol:$("gcol").value, gfn:$("gfn").value, gtarget:$("gtarget").value,
+    ocol:$("ocol").value, odir:$("odir").value, lim:$("lim").value
+  };
+}
+
+function fillCols(sel, blankLabel){
+  sel.innerHTML = "";
+  if (blankLabel) sel.appendChild(new Option(blankLabel, ""));
+  COLS.forEach(function(c){ sel.appendChild(new Option(colName(c)+"（"+c.id+"）", c.id)); });
+}
+function fillOps(sel){
+  sel.innerHTML = "";
+  OP_ORDER.forEach(function(v){ sel.appendChild(new Option(T().ops[v]+" "+v, v)); });
+}
+
+var orderMode = null;
+function buildOrderOptions(force){
+  var gon = $("gon").checked;
+  var want = gon ? "agg" : "cols";
+  if (!force && want === orderMode) return;
+  var sel = $("ocol"), keep = sel.value;
+  sel.innerHTML = "";
+  sel.appendChild(new Option(T().noSort, ""));
+  if (gon) {
+    sel.appendChild(new Option(T().groupName, "__group"));
+    sel.appendChild(new Option(T().aggValue, "__agg"));
+    sel.value = (keep === "__group" || keep === "__agg") ? keep : "__agg";
+  } else {
+    COLS.forEach(function(c){ sel.appendChild(new Option(colName(c)+"（"+c.id+"）", c.id)); });
+    sel.value = colById(keep) ? keep : "D";
+  }
+  orderMode = want;
+}
+
+function buildControls(prev){
+  var box = $("cols");
+  box.innerHTML = "";
+  COLS.forEach(function(c){
+    var checked = prev ? (prev.cols.indexOf(c.id) > -1) : true;
+    var l = document.createElement("label");
+    l.className = "chip";
+    l.innerHTML = '<input type="checkbox" value="'+c.id+'"'+(checked?" checked":"")+'> '+colName(c)+' <code>'+c.id+'</code>';
+    box.appendChild(l);
+  });
+
+  fillCols($("w1col"), T().noCond);
+  fillCols($("w2col"));
+  fillOps($("w1op")); fillOps($("w2op"));
+  fillCols($("gcol"));
+
+  $("w2join").innerHTML = "";
+  $("w2join").appendChild(new Option(T().and, "and"));
+  $("w2join").appendChild(new Option(T().or, "or"));
+
+  $("gfn").innerHTML = "";
+  ["avg","sum","count","max","min"].forEach(function(k){ $("gfn").appendChild(new Option(T().fn[k], k)); });
+
+  $("gtarget").innerHTML = "";
+  COLS.filter(function(c){return c.type==="num";}).forEach(function(c){
+    $("gtarget").appendChild(new Option(colName(c)+"（"+c.id+"）", c.id));
+  });
+
+  $("odir").innerHTML = "";
+  $("odir").appendChild(new Option(T().asc, "asc"));
+  $("odir").appendChild(new Option(T().desc, "desc"));
+
+  $("lim").innerHTML = "";
+  $("lim").appendChild(new Option(T().limAll, "0"));
+  [3,5,10].forEach(function(n){ $("lim").appendChild(new Option(T().limN(n), String(n))); });
+
+  var d = prev || {w1col:"D",w1op:">",w2col:"E",w2op:">",w2join:"and",gcol:"C",gfn:"avg",gtarget:"D",ocol:"D",odir:"desc",lim:"0"};
+  $("w1col").value=d.w1col; $("w1op").value=d.w1op;
+  $("w2col").value=d.w2col; $("w2op").value=d.w2op; $("w2join").value=d.w2join;
+  $("gcol").value=d.gcol; $("gfn").value=d.gfn; $("gtarget").value=d.gtarget;
+  $("odir").value=d.odir; $("lim").value=d.lim;
+  buildOrderOptions(true);
+  if (prev) $("ocol").value = (Array.prototype.map.call($("ocol").options,function(o){return o.value;}).indexOf(prev.ocol) > -1) ? prev.ocol : $("ocol").value;
+}
+
+/* ---------- 状態 ---------- */
+function readState(){
+  var picked = [];
+  var boxes = $("cols").querySelectorAll("input");
+  for (var i=0;i<boxes.length;i++) if (boxes[i].checked) picked.push(boxes[i].value);
+  var s = {
+    cols: picked,
+    w1: { col:$("w1col").value, op:$("w1op").value, val:$("w1val").value.trim() },
+    w2on: $("w2on").checked,
+    w2: { join:$("w2join").value, col:$("w2col").value, op:$("w2op").value, val:$("w2val").value.trim() },
+    gon: $("gon").checked,
+    g: { col:$("gcol").value, fn:$("gfn").value, target:$("gtarget").value },
+    o: { col:$("ocol").value, dir:$("odir").value },
+    limit: parseInt($("lim").value, 10) || 0
+  };
+  if (!s.w1.col || s.w1.val === "") { s.w1 = null; s.w2on = false; }
+  if (s.w2on && s.w2.val === "") s.w2on = false;
+  return s;
+}
+
+function litParts(colId, op, raw){
+  var c = colById(colId);
+  var textOp = (op === "contains" || op === "starts with");
+  if (c && c.type === "num" && !textOp && raw !== "" && !isNaN(Number(raw))) {
+    return {code: raw, num: Number(raw), isText:false};
+  }
+  return {code: "'" + String(raw).replace(/'/g,"") + "'", num: null, isText:true};
+}
+
+/* ---------- 数式 ---------- */
+function esc(v){ return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+function tok(cls, part, text){
+  var p = part ? ' data-part="'+part+'" style="--tint:var(--c-'+part+')"' : '';
+  return '<span class="tok '+cls+'"'+p+'>'+esc(text)+'</span>';
+}
+
+function buildQuery(s){
+  var plain = [], html = [];
+  var selText;
+  if (s.gon) {
+    selText = s.g.col + ", " + s.g.fn + "(" + s.g.target + ")";
+  } else {
+    selText = (s.cols.length === COLS.length || s.cols.length === 0) ? "*" : s.cols.join(", ");
+  }
+  plain.push("select " + selText);
+  html.push(tok("t-select","select","select " + selText));
+
+  if (s.w1) {
+    var w = "where " + s.w1.col + " " + s.w1.op + " " + litParts(s.w1.col, s.w1.op, s.w1.val).code;
+    if (s.w2on) w += " " + s.w2.join + " " + s.w2.col + " " + s.w2.op + " " + litParts(s.w2.col, s.w2.op, s.w2.val).code;
+    plain.push(w);
+    html.push(tok("t-where","where",w));
+  }
+  if (s.gon) {
+    plain.push("group by " + s.g.col);
+    html.push(tok("t-group","group","group by " + s.g.col));
+  }
+  if (s.o.col) {
+    var oTarget = s.o.col;
+    if (s.gon) oTarget = (s.o.col === "__agg") ? (s.g.fn + "(" + s.g.target + ")") : s.g.col;
+    plain.push("order by " + oTarget + " " + s.o.dir);
+    html.push(tok("t-order","order","order by " + oTarget + " " + s.o.dir));
+  }
+  if (s.limit > 0) {
+    plain.push("limit " + s.limit);
+    html.push(tok("t-limit","limit","limit " + s.limit));
+  }
+  var q = plain.join(" ");
+  return {
+    plain: '=QUERY(A1:E11, "' + q + '", 1)',
+    html: tok("t-dim",null,'=QUERY(A1:E11, "') + html.join(tok("t-dim",null," ")) + tok("t-dim",null,'", 1)')
+  };
+}
+
+/* ---------- 実行 ---------- */
+function testRow(row, colId, op, raw){
+  var cell = row[idxOf(colId)];
+  var lit = litParts(colId, op, raw);
+  if (op === "contains")    return String(cell).indexOf(String(raw)) !== -1;
+  if (op === "starts with") return String(cell).indexOf(String(raw)) === 0;
+  if (!lit.isText && typeof cell === "number") {
+    var n = lit.num;
+    switch(op){
+      case ">":  return cell >  n;
+      case ">=": return cell >= n;
+      case "<":  return cell <  n;
+      case "<=": return cell <= n;
+      case "=":  return cell === n;
+      case "!=": return cell !== n;
+    }
+  }
+  var a = String(cell), b = String(raw);
+  switch(op){
+    case "=":  return a === b;
+    case "!=": return a !== b;
+    case ">":  return a >  b;
+    case ">=": return a >= b;
+    case "<":  return a <  b;
+    case "<=": return a <= b;
+  }
+  return false;
+}
+
+function runQuery(s){
+  var data = rows().filter(function(r){
+    if (!s.w1) return true;
+    var ok = testRow(r, s.w1.col, s.w1.op, s.w1.val);
+    if (s.w2on) {
+      var ok2 = testRow(r, s.w2.col, s.w2.op, s.w2.val);
+      ok = (s.w2.join === "and") ? (ok && ok2) : (ok || ok2);
+    }
+    return ok;
+  });
+
+  var head, out;
+  if (s.gon) {
+    var gi = idxOf(s.g.col), ti = idxOf(s.g.target);
+    var keys = [], buckets = {};
+    data.forEach(function(r){
+      var k = String(r[gi]);
+      if (!buckets[k]) { buckets[k] = []; keys.push(k); }
+      buckets[k].push(r[ti]);
+    });
+    head = [colName(colById(s.g.col)), T().fnShort[s.g.fn] + " " + colName(colById(s.g.target))];
+    out = keys.map(function(k){
+      var vals = buckets[k], v;
+      if (s.g.fn === "count") v = vals.length;
+      else if (s.g.fn === "sum") v = vals.reduce(function(a,b){return a+b;},0);
+      else if (s.g.fn === "avg") v = Math.round((vals.reduce(function(a,b){return a+b;},0)/vals.length)*100)/100;
+      else if (s.g.fn === "max") v = Math.max.apply(null, vals);
+      else v = Math.min.apply(null, vals);
+      return [k, v];
+    });
+    if (s.o.col) {
+      var byGroup = (s.o.col !== "__agg");
+      out.sort(function(a,b){
+        var x = byGroup ? a[0] : a[1], y = byGroup ? b[0] : b[1];
+        var d = (x > y) ? 1 : (x < y ? -1 : 0);
+        return s.o.dir === "desc" ? -d : d;
+      });
+    }
+  } else {
+    var picked = (s.cols.length === 0) ? COLS.map(function(c){return c.id;}) : s.cols;
+    if (s.o.col && colById(s.o.col)) {
+      var oi = idxOf(s.o.col);
+      data = data.slice().sort(function(a,b){
+        var x = a[oi], y = b[oi];
+        var d = (x > y) ? 1 : (x < y ? -1 : 0);
+        return s.o.dir === "desc" ? -d : d;
+      });
+    }
+    head = picked.map(function(id){ return colName(colById(id)); });
+    out = data.map(function(r){ return picked.map(function(id){ return r[idxOf(id)]; }); });
+  }
+  if (s.limit > 0) out = out.slice(0, s.limit);
+  return {head: head, rows: out};
+}
+
+/* ---------- 描画 ---------- */
+function renderSource(s){
+  var picked = s.gon ? [s.g.col, s.g.target] : (s.cols.length ? s.cols : COLS.map(function(c){return c.id;}));
+  var h = '<table><thead class="colref"><tr><th></th>';
+  COLS.forEach(function(c){ h += '<th class="'+(picked.indexOf(c.id)>-1?"hit":"")+'">'+c.id+'</th>'; });
+  h += '</tr></thead><thead class="names"><tr><th class="rownum">1</th>';
+  COLS.forEach(function(c){ h += '<th>'+esc(colName(c))+'</th>'; });
+  h += '</tr></thead><tbody>';
+  rows().forEach(function(r,i){
+    h += '<tr><td class="rownum">'+(i+2)+'</td>';
+    r.forEach(function(v,j){ h += '<td class="'+(COLS[j].type==="num"?"num":"")+'">'+esc(v)+'</td>'; });
+    h += '</tr>';
+  });
+  return h + '</tbody></table>';
+}
+
+function renderResult(res){
+  if (!res.rows.length) return '<div class="empty">'+T().empty+'</div>';
+  var h = '<div class="tablewrap"><table><thead class="names"><tr>';
+  res.head.forEach(function(n){ h += '<th>'+esc(n)+'</th>'; });
+  h += '</tr></thead><tbody>';
+  res.rows.forEach(function(r){
+    h += '<tr>';
+    r.forEach(function(v){ h += '<td class="'+(typeof v==="number"?"num":"")+'">'+esc(v)+'</td>'; });
+    h += '</tr>';
+  });
+  return h + '</tbody></table></div><p class="result-meta">'+T().rowsReturned(res.rows.length)+'</p>';
+}
+
+/* ---------- ハイライト ---------- */
+function light(part, on){
+  var rowsEl = document.querySelectorAll('.row[data-row="'+part+'"]');
+  for (var i=0;i<rowsEl.length;i++) rowsEl[i].classList.toggle("lit", on);
+  var toks = document.querySelectorAll('.tok[data-part="'+part+'"]');
+  for (var j=0;j<toks.length;j++) toks[j].classList.toggle("lit", on);
+}
+function wireHighlight(){
+  var toks = document.querySelectorAll(".tok[data-part]");
+  for (var i=0;i<toks.length;i++) {
+    (function(t){
+      var p = t.dataset.part;
+      t.addEventListener("mouseenter", function(){ light(p,true); });
+      t.addEventListener("mouseleave", function(){ light(p,false); });
+    })(toks[i]);
+  }
+}
+function wireRows(){
+  ["select","where","group","order","limit"].forEach(function(p){
+    var row = document.querySelector('.row[data-row="'+p+'"]');
+    if (!row) return;
+    row.addEventListener("mouseenter", function(){ light(p,true); });
+    row.addEventListener("mouseleave", function(){ light(p,false); });
+    row.addEventListener("focusin",  function(){ light(p,true); });
+    row.addEventListener("focusout", function(){ light(p,false); });
+  });
+}
+
+/* ---------- 更新 ---------- */
+function update(){
+  buildOrderOptions(false);
+  var s = readState();
+  var q = buildQuery(s);
+  $("formula").innerHTML = q.html;
+  $("formula").dataset.plain = q.plain;
+  $("result").innerHTML = renderResult(runQuery(s));
+  $("src").innerHTML = renderSource(s);
+  $("w2box").hidden = !$("w2on").checked;
+  $("gbox").hidden  = !$("gon").checked;
+  wireHighlight();
+}
+
+function applyLang(){
+  var t = T();
+  document.documentElement.lang = t.htmlLang;
+  document.title = t.docTitle;
+  var nodes = document.querySelectorAll("[data-i18n]");
+  for (var i=0;i<nodes.length;i++) nodes[i].innerHTML = t[nodes[i].dataset.i18n];
+  $("credit").innerHTML = t.credit;
+  $("langBtn").textContent = t.otherLangBtn;
+  $("themeBtn").textContent = (document.documentElement.dataset.theme === "dark") ? t.lightBtn : t.darkBtn;
+}
+
+function setTheme(mode){
+  document.documentElement.dataset.theme = mode;
+  $("themeBtn").textContent = (mode === "dark") ? T().lightBtn : T().darkBtn;
+}
+
+document.addEventListener("DOMContentLoaded", function(){
+  setTheme(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  applyLang();
+  buildControls(null);
+  wireRows();
+
+  var onEdit = function(e){ if (e.target && e.target.closest && e.target.closest(".panel")) update(); };
+  document.addEventListener("input", onEdit);
+  document.addEventListener("change", onEdit);
+
+  $("langBtn").addEventListener("click", function(){
+    var prev = keepValues();
+    LANG = (LANG === "ja") ? "en" : "ja";
+    applyLang();
+    buildControls(prev);
+    update();
+  });
+  $("themeBtn").addEventListener("click", function(){
+    setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+  });
+
+  $("copy").addEventListener("click", function(){
+    var txt = $("formula").dataset.plain;
+    var done = function(){
+      var b = $("copy"), old = T().copy;
+      b.textContent = T().copied;
+      setTimeout(function(){ b.textContent = old; }, 1400);
+    };
+    var fallback = function(){
+      var ta = document.createElement("textarea");
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); done(); } catch(e){}
+      document.body.removeChild(ta);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done, fallback);
+    } else fallback();
+  });
+
+  $("reset").addEventListener("click", function(){
+    $("w1val").value="70"; $("w2on").checked=false; $("w2val").value="3"; $("gon").checked=false;
+    buildControls(null);
+    update();
+  });
+
+  update();
+});
+</script>
+</body>
+</html>
